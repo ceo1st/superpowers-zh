@@ -9,4 +9,5 @@ triage/
 # 安装器生成的 skills 副本（源在 skills/ 目录）
 .codex/skills/
 .gemini/skills/
+.hermes/skills/
 .opencode/skills/

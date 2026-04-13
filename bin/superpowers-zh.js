@@ -44,6 +44,7 @@ const TARGETS = [
   { name: 'Aider',         dir: '.aider/skills',             detect: '.aider' },
   { name: 'OpenCode',      dir: '.opencode/skills',          detect: '.opencode' },
   { name: 'Qwen Code',     dir: '.qwen/skills',             detect: '.qwen' },
+  { name: 'Hermes Agent',  dir: '.hermes/skills',            detect: ['.hermes', 'HERMES.md', '.hermes.md'] },
 ];
 
 function countDirs(dir) {
@@ -230,6 +231,62 @@ ${skillList}
   }
 }
 
+function generateHermesBootstrap(projectDir) {
+  const skillEntries = scanSkillEntries(SKILLS_SRC);
+  const skillList = skillEntries.map(s => `- **${s.name}**: ${s.desc}`).join('\n');
+
+  const content = `# Superpowers-ZH 中文增强版
+
+本项目已安装 superpowers-zh 技能框架（${skillEntries.length} 个 skills）。
+
+## 核心规则
+
+1. **收到任务时，先检查是否有匹配的 skill** — 哪怕只有 1% 的可能性也要检查
+2. **设计先于编码** — 收到功能需求时，先用 brainstorming skill 做需求分析
+3. **测试先于实现** — 写代码前先写测试（TDD）
+4. **验证先于完成** — 声称完成前必须运行验证命令
+
+## 工具映射
+
+技能中引用的 Claude Code 工具名称对应 Hermes Agent 的等价工具：
+- \`Read\` → \`read_file\`
+- \`Write\` → \`write_file\`
+- \`Edit\` → \`patch\`
+- \`Bash\` → \`terminal\`
+- \`Grep\` / \`Glob\` → \`search_files\`
+- \`Skill\` → \`skill_view\`
+- \`Task\`（子智能体） → \`delegate_task\`
+- \`WebSearch\` → \`web_search\`
+- \`WebFetch\` → \`web_extract\`
+- \`TodoWrite\` → \`todo\`
+
+## 可用 Skills
+
+Skills 位于 \`.hermes/skills/\` 目录，每个 skill 有独立的 \`SKILL.md\` 文件。
+
+${skillList}
+
+## 如何使用
+
+当任务匹配某个 skill 时，使用 \`skill_view\` 加载对应 skill 并严格遵循其流程。
+`;
+
+  // 写入 HERMES.md（如果已存在则追加）
+  const hermesPath = resolve(projectDir, 'HERMES.md');
+  if (existsSync(hermesPath)) {
+    const existing = readFileSync(hermesPath, 'utf8');
+    if (!existing.includes('superpowers-zh')) {
+      writeFileSync(hermesPath, existing + '\n\n' + content, 'utf8');
+      console.log(`  ✅ Hermes Agent: 追加 skills 引用 -> ${hermesPath}`);
+    } else {
+      console.log(`  ✅ Hermes Agent: HERMES.md 已包含 superpowers-zh 引用`);
+    }
+  } else {
+    writeFileSync(hermesPath, content, 'utf8');
+    console.log(`  ✅ Hermes Agent: bootstrap -> ${hermesPath}`);
+  }
+}
+
 // 工具名称别名映射（用户输入 -> TARGETS.name）
 const TOOL_ALIASES = {
   'claude':       'Claude Code',
@@ -253,6 +310,8 @@ const TOOL_ALIASES = {
   'opencode':     'OpenCode',
   'qwen':         'Qwen Code',
   'qwen-code':    'Qwen Code',
+  'hermes':       'Hermes Agent',
+  'hermes-agent': 'Hermes Agent',
 };
 
 function showHelp() {
@@ -300,6 +359,10 @@ function installForTarget(target) {
 
   if (target.name === 'Gemini CLI') {
     generateGeminiBootstrap(PROJECT_DIR);
+  }
+
+  if (target.name === 'Hermes Agent') {
+    generateHermesBootstrap(PROJECT_DIR);
   }
 
   if (target.name === 'Claude Code' && existsSync(AGENTS_SRC)) {
